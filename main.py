@@ -2,6 +2,7 @@ import time
 import csv
 import os
 from datetime import datetime
+from collections import deque
 
 class Charger:
     def __init__(self, cid, power_kw):
@@ -51,9 +52,32 @@ def charge(vehicle, charger, target=100):
     print(f"Done. Energy: {used:.2f} kWh, Cost: {used * RATE:.2f}")
     save_session(vehicle, charger, used, used * RATE)
 
+queue = deque()
+
+def add_to_queue():
+    name = input("Vehicle name: ")
+    cap = float(input("Battery capacity (kWh): "))
+    pct = float(input("Current battery %: "))
+    queue.append(Vehicle(name, cap, pct))
+    print(f"{name} added. Waiting: {len(queue)}")
+
+def process_queue():
+    if not queue:
+        print("Queue is empty.")
+        return
+    while queue:
+        free = next((c for c in chargers if not c.busy), None)
+        if free is None:
+            print("No free charger.")
+            break
+        v = queue.popleft()
+        print(f"\n{v.name} -> Charger {free.cid}")
+        charge(v, free)
+
 def main():
     while True:
-        print("\n1. Show chargers\n2. Start charging\n3. View history\n4. Exit")
+        print("\n1. Show chargers\n2. Start charging\n3. Add to queue")
+        print("4. Process queue\n5. View history\n6. Exit")
         choice = input("Choose: ")
         if choice == "1":
             show_chargers()
@@ -67,11 +91,15 @@ def main():
             v = Vehicle("EV", 40, float(input("Current battery %: ")))
             charge(v, charger)
         elif choice == "3":
+            add_to_queue()
+        elif choice == "4":
+            process_queue()
+        elif choice == "5":
             if os.path.exists("sessions.csv"):
                 print(open("sessions.csv").read())
             else:
                 print("No sessions yet.")
-        elif choice == "4":
+        elif choice == "6":
             break
 
 main()
